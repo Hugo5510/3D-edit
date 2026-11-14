@@ -4,6 +4,7 @@ export default defineConfig({
   testDir: 'e2e',
   timeout: 90_000,
   retries: process.env.CI ? 1 : 0,
+  workers: process.env.CI ? 1 : undefined,
   use: {
     baseURL: 'http://localhost:4173/',
     viewport: { width: 1400, height: 850 },

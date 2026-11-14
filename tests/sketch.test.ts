@@ -176,3 +176,16 @@ describe('szkic – kontury', () => {
     expect(segs.length).toBe(3);
   });
 });
+
+describe('pole konturu', () => {
+  it('dokładne pole koła i konturu z łukiem', async () => {
+    const { loopArea, orderLoop } = await import('../src/model/sketchGeom');
+    const s = sk();
+    addCircle(s, { x: 0, y: 0 }, 4);
+    expect(loopArea(orderLoop(s, [s.entities[0].id]))).toBeCloseTo(Math.PI * 16, 10);
+    const s2 = sk();
+    const l = addLine(s2, { x: -10, y: 0 }, { x: 10, y: 0 })!;
+    addArc(s2, { id: l.b, x: 10, y: 0 }, { id: l.a, x: -10, y: 0 }, 1);
+    expect(Math.abs(loopArea(orderLoop(s2, s2.entities.map((e) => e.id))))).toBeCloseTo(50 * Math.PI, 10);
+  });
+});

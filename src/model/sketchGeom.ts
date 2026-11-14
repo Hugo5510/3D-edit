@@ -323,3 +323,18 @@ export function allRegions(sk: Sketch): string[][][] {
     return [outer.ids, ...holes.map((h) => h.ids)];
   });
 }
+
+/** Dokładne pole pętli (wielokąt cięciw + odcinki kołowe łuków); znak zgodny z kierunkiem obiegu. */
+export function loopArea(segs: LoopSeg[]): number {
+  let a = 0;
+  for (const s of segs) {
+    if (s.type === 'circle') return Math.PI * s.r * s.r;
+    a += (s.p0[0] * s.p1[1] - s.p1[0] * s.p0[1]) / 2;
+    if (s.type === 'arc') {
+      const g = arcGeometry(s.p0, s.p1, s.bulge);
+      const th = Math.abs(g.sweep);
+      a += Math.sign(g.sweep) * ((g.r * g.r) / 2) * (th - Math.sin(th));
+    }
+  }
+  return a;
+}
