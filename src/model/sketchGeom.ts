@@ -278,12 +278,14 @@ export function findLoops(sk: Sketch): { ids: string[]; poly: Vec2[]; area: numb
     if (!ok || cycle.length < 2) continue;
     const ids = cycle.map((c) => c.ent);
     if (new Set(ids).size !== ids.length) continue;
-    let segs: LoopSeg[];
-    try {
-      segs = orderLoop(sk, ids);
-    } catch {
-      continue;
-    }
+    // wielokąt w kierunku obiegu (znak pola rozróżnia obszary ograniczone od zewnętrznego)
+    const segs: LoopSeg[] = cycle.map((c) => {
+      const e = sk.entities.find((x) => x.id === c.ent)!;
+      const p0 = pts.get(c.from)!;
+      const p1 = pts.get(c.to)!;
+      if (e.type === 'arc') return { type: 'arc', p0, p1, bulge: c.from === e.a ? e.bulge : -e.bulge };
+      return { type: 'line', p0, p1 };
+    });
     const poly = loopPolygon(segs);
     const area = polygonArea(poly);
     // Ściany wewnętrzne mają dodatnie pole przy tej konwencji obchodzenia; zewnętrzna – ujemne.

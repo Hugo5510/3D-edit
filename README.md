@@ -75,3 +75,20 @@ bryły gotowe (prostopadłościan, walec, kula, stożek, torus, graniastosłup, 
 manipulator (strzałki X/Y/Z + pierścienie obrotu) z podglądem na żywo i wartością przy kursorze, obrót o dowolny
 kąt i przyciski 90°, skalowanie równomierne/osiowe, procentowo i do wymiaru w mm, pozycja w polach,
 „Połóż na stole”, cofnij/ponów (Ctrl+Z / Ctrl+Y), autozapis, PWA z pracą offline, CI z testami i wdrożeniem.
+
+### Etap 2 — szkic i wyciągnięcie ✅
+Działa: szkic na płaszczyźnie XY/XZ/YZ lub na płaskiej ścianie bryły (kamera ustawia się prostopadle),
+linia (łańcuchowo), prostokąt, okrąg, wielokąt foremny, łuk przez 3 punkty i łuk środek–początek–koniec;
+pole wymiarów w trakcie rysowania (długość/kąt, szerokość/wysokość, promień/średnica, liczba boków, kąt łuku),
+przyciąganie do punktów końcowych, środków odcinków, środków okręgów i siatki; przeciąganie punktów
+(upuszczony na inny punkt łączy się z nim we wspólny wierzchołek), prostokąt i wielokąt zachowują kształt przy
+przeciąganiu; edycja wymiarów zaznaczonego elementu (długość, kąt, promień, współrzędne punktów, szerokość/wysokość
+prostokąta, liczba boków); zaokrąglanie narożników podanym promieniem; wypełnianie konturu jednym kliknięciem
+(także kontury z otworami i obszary ze wspólnymi krawędziami) i „Wypełnij wszystko”; niedomknięte końce
+i przerwy zaznaczane na czerwono, z komunikatem o położeniu i długości przerwy; wyciągnięcie konturu lub płaskiej
+ściany: przeciąganie strzałki albo wpisanie wysokości, tryby „dodaj materiał”, „wytnij”, „nowa bryła”,
+symetrycznie; przy „wytnij” kierunek automatycznie w głąb bryły; gumka (odcinek, wypełnienie, bryła).
+
+Ograniczenia: szkic narysowany na ścianie nie podąża za bryłą, gdy ta zostanie później przesunięta (płaszczyzna
+szkicu jest zapamiętywana w chwili jego utworzenia). Brak więzów geometrycznych (równoległość, styczność itp.) —
+wymiary ustawia się bezpośrednio liczbami.

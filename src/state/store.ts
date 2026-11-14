@@ -16,6 +16,7 @@ export type Selection =
 
 export type ToolId =
   | 'select'
+  | 'sketchPlane'
   | 'line'
   | 'rect'
   | 'circle'
@@ -89,6 +90,7 @@ export interface AppState {
 }
 
 const HISTORY_LIMIT = 200;
+const SKETCH_TOOL_IDS = new Set<ToolId>(['select', 'line', 'rect', 'circle', 'polygon', 'arc3', 'arcc', 'sketchFillet', 'fill', 'erase', 'measure']);
 
 function keepSel(sel: Selection, doc: ProjectDoc): Selection {
   if (sel?.kind === 'body' && doc.bodies.some((b) => b.id === sel.bodyId)) return sel;
@@ -146,7 +148,11 @@ export const useApp = create<AppState>((set, get) => ({
   },
   addAsset: (a) => set({ assets: { ...get().assets, [a.id]: a } }),
   setSelection: (selection) => set({ selection }),
-  setTool: (tool, toolState = {}) => set({ tool, toolState, dragInfo: null }),
+  setTool: (tool, toolState = {}) => {
+    // narzędzia 3D kończą edycję szkicu
+    const keepSketch = SKETCH_TOOL_IDS.has(tool);
+    set({ tool, toolState, dragInfo: null, ...(keepSketch ? {} : { activeSketchId: null }) });
+  },
   setToolState: (patch) => set({ toolState: { ...get().toolState, ...patch } }),
   setSettings: (patch) => set({ settings: { ...get().settings, ...patch } }),
   notify: (text, kind = 'info') => {

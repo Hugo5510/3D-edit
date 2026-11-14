@@ -13,7 +13,13 @@ export interface ToolDef {
   title: string;
 }
 
-export const MODEL_TOOLS: ToolDef[] = [{ id: 'select', label: 'Zaznacz', icon: 'select', key: 'Esc', title: 'Zaznaczanie i manipulator (Esc)' }];
+export const MODEL_TOOLS: ToolDef[] = [
+  { id: 'select', label: 'Zaznacz', icon: 'select', key: 'Esc', title: 'Zaznaczanie i manipulator (Esc)' },
+  { id: 'sketchPlane', label: 'Szkic', icon: 'sketch', key: 'S', title: 'Nowy szkic na płaszczyźnie lub płaskiej ścianie (S)' },
+  { id: 'extrude', label: 'Wyciągnij', icon: 'extrude', key: 'E', title: 'Wyciągnięcie konturu lub ściany – dodaj materiał / wytnij (E)' },
+];
+
+export const EDIT_TOOLS: ToolDef[] = [{ id: 'erase', label: 'Gumka', icon: 'erase', key: 'X', title: 'Gumka: usuwa odcinek szkicu, kontur lub bryłę (X)' }];
 
 export function freeSpot(): [number, number, number] {
   const st = useApp.getState();
@@ -65,6 +71,13 @@ export function Toolbar() {
           </div>
         )}
       </div>
+      <div className="sep" />
+      {EDIT_TOOLS.map((t) => (
+        <button key={t.id} className={'tool' + (tool === t.id ? ' on' : '')} title={t.title} data-testid={`tool-${t.id}`} onClick={() => setTool(t.id)}>
+          <Icon name={t.icon} />
+          <span>{t.label}</span>
+        </button>
+      ))}
       <div className="sep" />
       <button className="tool" title="Dopasuj widok (F)" data-testid="fit-view" onClick={() => viewerInstance?.fitAll()}>
         <Icon name="fit" />

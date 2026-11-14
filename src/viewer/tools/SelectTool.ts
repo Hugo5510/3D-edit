@@ -4,6 +4,8 @@ import { Gizmo } from '../Gizmo';
 import { useApp } from '../../state/store';
 import { transformBody } from '../../state/actions';
 import { pickSketch } from './sketchPick';
+import { SketchPointDragger } from './SketchTools';
+import type { SketchLayer } from '../SketchLayer';
 
 /** Narzędzie zaznaczania: klik zaznacza bryłę (lub element szkicu), manipulator przesuwa i obraca. */
 export class SelectTool implements Tool {
@@ -11,8 +13,12 @@ export class SelectTool implements Tool {
   private viewer!: Viewer;
   private previewBody: string | null = null;
 
-  constructor(viewer: Viewer) {
+  private dragger: SketchPointDragger | null = null;
+  private draggingPoint = false;
+
+  constructor(viewer: Viewer, layer?: SketchLayer) {
     this.viewer = viewer;
+    if (layer) this.dragger = new SketchPointDragger(viewer, layer);
     this.gizmo = new Gizmo(viewer, {
       preview: (m, label, info) => {
         const id = this.previewBody;
@@ -80,6 +86,10 @@ export class SelectTool implements Tool {
 
   pointerDown(e: PointerInfo): boolean {
     const st = useApp.getState();
+    if (st.activeSketchId && this.dragger?.pointerDown(e)) {
+      this.draggingPoint = true;
+      return true;
+    }
     const sel = st.selection;
     if (sel?.kind === 'body' && this.gizmo.begin(e)) {
       this.previewBody = sel.bodyId;
@@ -89,10 +99,16 @@ export class SelectTool implements Tool {
   }
 
   drag(e: PointerInfo) {
-    this.gizmo.move(e);
+    if (this.draggingPoint) this.dragger?.drag(e);
+    else this.gizmo.move(e);
   }
 
   pointerUp() {
+    if (this.draggingPoint) {
+      this.draggingPoint = false;
+      this.dragger?.pointerUp();
+      return;
+    }
     const id = this.previewBody;
     this.gizmo.end();
     useApp.getState().setDragInfo(null);

@@ -9,6 +9,7 @@ import { PrinterDialog } from './PrinterDialog';
 import { deleteBody, clone } from '../state/actions';
 import { emptyDoc } from '../model/types';
 import { NumberField } from './NumberField';
+import { SketchBar, DimBox } from './SketchPanels';
 
 export function App() {
   const message = useApp((s) => s.message);
@@ -53,6 +54,8 @@ export function App() {
         const map = shortcutMap();
         if (k === 'f') viewerInstance?.fitAll();
         else if (k === 'g') st.setSettings({ gridSnap: !st.settings.gridSnap });
+        else if (e.shiftKey && k === 'a' && st.activeSketchId) st.setTool('arcc');
+        else if (e.shiftKey && k === 'f' && st.activeSketchId) st.setTool('sketchFillet');
         else if (map[k]) map[k]();
       }
     };
@@ -118,6 +121,8 @@ export function App() {
         <Toolbar />
         <div className="viewport-wrap">
           <Viewport />
+          <SketchBar />
+          <DimBox />
           {dragInfo && (
             <div className="drag-info" style={{ left: dragInfo.x + 18, top: dragInfo.y + 18 }}>
               {dragInfo.text}
@@ -152,6 +157,11 @@ export function App() {
 
 /** Skróty klawiszowe narzędzi (uzupełniane w kolejnych etapach). */
 export const shortcutHandlers: Record<string, () => void> = {};
-function shortcutMap() {
-  return shortcutHandlers;
+function shortcutMap(): Record<string, () => void> {
+  const st = useApp.getState();
+  const inSketch = !!st.activeSketchId;
+  const t = (id: Parameters<typeof st.setTool>[0]) => () => st.setTool(id);
+  const base: Record<string, () => void> = { e: t('extrude'), x: t('erase'), s: () => !inSketch && st.setTool('sketchPlane'), ...shortcutHandlers };
+  if (inSketch) Object.assign(base, { l: t('line'), r: t('rect'), c: t('circle'), p: t('polygon'), a: t('arc3'), w: t('fill') });
+  return base;
 }

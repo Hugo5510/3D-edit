@@ -1,5 +1,6 @@
 import { useApp } from '../state/store';
 import { clone, featureLabel, removeFeature, updateFeature } from '../state/actions';
+import { editSketch } from '../viewer/tools/sketchMode';
 
 const NO_ERRORS: Record<string, string> = {};
 
@@ -44,7 +45,7 @@ export function FeatureTree() {
       {doc.sketches.length > 0 && <h3>Szkice</h3>}
       {doc.sketches.map((s) => (
         <div key={s.id} className={'tree-item' + (activeSketch === s.id ? ' sel' : '')}>
-          <span className="grow" onClick={() => useApp.getState().setActiveSketch(s.id)} title="Edytuj szkic">
+          <span className="grow" onClick={() => editSketch(s.id)} title="Edytuj szkic">
             ✎ {s.name} <span className="muted">({s.entities.length} el., {s.profiles.length} wypełn.)</span>
           </span>
           <button

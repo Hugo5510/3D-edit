@@ -23,7 +23,7 @@ const C_GAP = 0xe02020;
 
 const mats = {
   line: makeLineMaterial(C_LINE, 2),
-  active: makeLineMaterial(C_ACTIVE, 2.5),
+  active: makeLineMaterial(C_ACTIVE, 2.5, false),
   sel: makeLineMaterial(C_SEL, 4, false),
   gap: makeLineMaterial(C_GAP, 3, false),
   preview: makeLineMaterial(0x00a86b, 2, false),

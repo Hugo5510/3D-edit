@@ -5,6 +5,7 @@ import { SketchLayer } from '../viewer/SketchLayer';
 import { useApp, type ToolId } from '../state/store';
 import { SelectTool } from '../viewer/tools/SelectTool';
 import { toolFactories } from '../viewer/tools/registry';
+import { refs } from '../viewer/ref';
 
 export let viewerInstance: Viewer | null = null;
 export let sketchLayerInstance: SketchLayer | null = null;
@@ -16,6 +17,7 @@ export function Viewport() {
     const el = host.current!;
     const viewer = new Viewer(el);
     viewerInstance = viewer;
+    refs.viewer = viewer;
     const cube = new ViewCube(el, viewer);
     const sketchLayer = new SketchLayer();
     sketchLayerInstance = sketchLayer;
