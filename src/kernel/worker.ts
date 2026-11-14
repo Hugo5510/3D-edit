@@ -55,13 +55,20 @@ async function handle(req: WorkerRequest): Promise<{ result: unknown; transfer?:
       else {
         const mark = k.checkpoint();
         try {
-          const sh = k.importStep(req.data);
-          brep = k.toBREP(sh);
+          brep = k.toBREP(k.importStep(req.data));
         } finally {
           k.releaseSince(mark);
         }
       }
-      return { result: brep };
+      const mark = k.checkpoint();
+      try {
+        const sh = k.fromBREP(brep);
+        if (!k.getSubShapes(sh, 'face').length) throw new Error('Plik nie zawiera geometrii brył ani powierzchni');
+        const bb = k.getBoundingBox(sh);
+        return { result: { brep, bbox: { min: [bb.xmin, bb.ymin, bb.zmin], max: [bb.xmax, bb.ymax, bb.zmax] }, solids: k.getSubShapes(sh, 'solid').length } };
+      } finally {
+        k.releaseSince(mark);
+      }
     }
   }
 }

@@ -104,3 +104,29 @@ Każdy parametr operacji można zmienić później w historii — geometria prze
 
 Ograniczenia: zaokrąglenie „narożnika” zaokrągla całe krawędzie wychodzące z wierzchołka (OCCT nie ma osobnej
 operacji „zaokrąglij tylko róg”). Otwór ma prosty kształt walcowy (bez pogłębień i gwintów).
+
+### Etap 4 — import i eksport ✅
+| Format | Eksport | Import | Uwagi |
+|---|---|---|---|
+| STL binarny / ASCII | ✅ | ✅ | jednostka mm (STL nie zapisuje jednostek) |
+| 3MF | ✅ | ✅ | `unit="millimeter"`; import przelicza inne jednostki, obsługuje komponenty i transformacje (także 3MF z Bambu Studio z modelami w osobnych plikach) |
+| OBJ | ✅ | ✅ | wszystkie grupy OBJ łączone w jedną bryłę |
+| PLY | ✅ (binarny) | ✅ (ASCII i binarny) | |
+| glTF / GLB | ✅ GLB | ✅ GLB i .gltf z danymi osadzonymi | domyślnie 1 jednostka = 1 mm (zgodnie z wymaganiem); opcja zapisu w metrach (specyfikacja glTF) |
+| STEP | ✅ (AP214, mm) | ✅ jako bryła B-rep | |
+| IGES | ✅ (encje 186, mm) | ✅ jako bryła B-rep | moduł IGES (~11 MB gzip) pobierany przy pierwszym użyciu |
+| DXF | ✅ szkice (LINE/ARC/CIRCLE, `$INSUNITS`=mm) | ✅ LINE, ARC, CIRCLE, LWPOLYLINE, POLYLINE | import tworzy szkic na XY |
+| Projekt `.3dedit` | ✅ | ✅ | ZIP z historią operacji, szkicami i zaimportowanymi plikami |
+
+Formaty zamknięte (IPT/IAM, DWG, F3D, .blend, SLDPRT) nie są udawane: przy próbie importu pojawia się
+komunikat, z jakiego otwartego formatu skorzystać, a okna importu i eksportu zawierają tabelę „program → format”.
+
+Zaimportowane siatki (STL, 3MF, OBJ, PLY, glTF) można przesuwać, obracać, skalować i łączyć z bryłami
+operacjami logicznymi (liczonymi przez manifold-3d — wynik jest siatką). Ograniczenia (opisane też w interfejsie):
+brak zaokrągleń/fazowań, narzędzia „Otwór”, wyciągania ścian i szkicu na ścianie siatki; operacje logiczne wymagają
+siatki zamkniętej; eksport siatki do STEP/IGES zapisuje ją jako płaskie trójkątne ściany (do 20 000 trójkątów).
+
+Testy (Vitest): sześcian 20 mm po eksporcie do STL (bin/ASCII), 3MF, OBJ, PLY i GLB i ponownym imporcie ma
+20 × 20 × 20 mm i jest siatką zamkniętą; bryła z otworem i zaokrągleniami po STL jest zamknięta, a jej objętość różni
+się od B-rep o < 0,5 %; STEP i IGES zachowują objętość; 3MF w calach i z transformacjami; DXF z łukami i LWPOLYLINE;
+plik projektu. Testy e2e (Playwright) pobierają pliki z działającej aplikacji i sprawdzają je tym samym kodem.

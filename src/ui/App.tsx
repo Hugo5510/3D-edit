@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useApp } from '../state/store';
 import { Viewport, bedProblems, viewerInstance } from './Viewport';
 import { Toolbar } from './Toolbar';
@@ -10,6 +10,8 @@ import { deleteBody, clone } from '../state/actions';
 import { emptyDoc } from '../model/types';
 import { NumberField } from './NumberField';
 import { SketchBar, DimBox } from './SketchPanels';
+import { ExportDialog, ImportDialog } from './FileDialogs';
+import { exportAndDownload, importFile, IMPORT_ACCEPT } from '../io/fileOps';
 
 export function App() {
   const message = useApp((s) => s.message);
@@ -24,6 +26,8 @@ export function App() {
   const problems = useApp((s) => bedProblems(s).join('; '));
   const [panelOpen, setPanelOpen] = useState(true);
   const [treeOpen, setTreeOpen] = useState(false);
+  const openInput = useRef<HTMLInputElement>(null);
+  const [dragOver, setDragOver] = useState(false);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -38,6 +42,12 @@ export function App() {
       if ((e.ctrlKey || e.metaKey) && k === 'z' && !e.shiftKey) {
         e.preventDefault();
         st.undo();
+      } else if ((e.ctrlKey || e.metaKey) && k === 's') {
+        e.preventDefault();
+        exportAndDownload('project').catch(() => {});
+      } else if ((e.ctrlKey || e.metaKey) && k === 'o') {
+        e.preventDefault();
+        openInput.current?.click();
       } else if ((e.ctrlKey || e.metaKey) && (k === 'y' || (k === 'z' && e.shiftKey))) {
         e.preventDefault();
         st.redo();
@@ -64,7 +74,24 @@ export function App() {
   }, []);
 
   return (
-    <div className={'app' + (panelOpen ? '' : ' panel-closed')}>
+    <div
+      className={'app' + (panelOpen ? '' : ' panel-closed') + (dragOver ? ' drag-over' : '')}
+      onDragOver={(e) => {
+        if (e.dataTransfer.types.includes('Files')) {
+          e.preventDefault();
+          setDragOver(true);
+        }
+      }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={async (e) => {
+        if (!e.dataTransfer.files.length) return;
+        e.preventDefault();
+        setDragOver(false);
+        if (useApp.getState().dialog === 'import') return;
+        for (const f of Array.from(e.dataTransfer.files))
+          await importFile(f, { placeOnBed: true, gltfMeters: false }).catch((err) => useApp.getState().notify(String(err.message ?? err), 'error'));
+      }}
+    >
       <header className="topbar">
         <div className="brand">
           <Icon name="box" /> <b>3D Edit</b>
@@ -82,6 +109,34 @@ export function App() {
         >
           <Icon name="new" />
           <span>Nowy</span>
+        </button>
+        <button className="tb" title="Otwórz projekt lub plik (Ctrl+O)" data-testid="open-file" onClick={() => openInput.current?.click()}>
+          <Icon name="open" />
+          <span>Otwórz</span>
+        </button>
+        <input
+          ref={openInput}
+          type="file"
+          hidden
+          accept={IMPORT_ACCEPT}
+          data-testid="open-input"
+          onChange={async (e) => {
+            const f = e.target.files?.[0];
+            e.target.value = '';
+            if (f) await importFile(f, { placeOnBed: true, gltfMeters: false }).catch((err) => useApp.getState().notify(String(err.message ?? err), 'error'));
+          }}
+        />
+        <button className="tb" title="Zapisz projekt z historią operacji (Ctrl+S)" data-testid="save-project" onClick={() => exportAndDownload('project').catch(() => {})}>
+          <Icon name="save" />
+          <span>Zapisz</span>
+        </button>
+        <button className="tb" title="Import STL, 3MF, OBJ, STEP, IGES, DXF…" data-testid="import" onClick={() => useApp.getState().setDialog('import')}>
+          <Icon name="import" />
+          <span>Import</span>
+        </button>
+        <button className="tb" title="Eksport do druku 3D, CAD i Blendera" data-testid="export" onClick={() => useApp.getState().setDialog('export')}>
+          <Icon name="export" />
+          <span>Eksport</span>
         </button>
         <div className="sep" />
         <button className="tb" title="Cofnij (Ctrl+Z)" data-testid="undo" disabled={!past} onClick={() => useApp.getState().undo()}>
@@ -151,6 +206,8 @@ export function App() {
         <span className="muted">1 jednostka = 1 mm · oś Z do góry</span>
       </footer>
       {dialog === 'printer' && <PrinterDialog />}
+      {dialog === 'import' && <ImportDialog />}
+      {dialog === 'export' && <ExportDialog />}
     </div>
   );
 }
