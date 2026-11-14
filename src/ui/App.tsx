@@ -30,6 +30,7 @@ export function App() {
   const [treeOpen, setTreeOpen] = useState(false);
   const openInput = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [fileMenu, setFileMenu] = useState(false);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -98,8 +99,42 @@ export function App() {
         <div className="brand">
           <Icon name="box" /> <b>3D Edit</b>
         </div>
+        <div className="mobile-only file-menu-wrap">
+          <button className="tb" data-testid="file-menu" onClick={() => setFileMenu(!fileMenu)} title="Plik">
+            <Icon name="open" />
+          </button>
+          {fileMenu && (
+            <div className="popup file-menu" onClick={() => setFileMenu(false)}>
+              <button onClick={() => openInput.current?.click()}>
+                <Icon name="open" /> Otwórz projekt / plik
+              </button>
+              <button onClick={() => exportAndDownload('project').catch(() => {})}>
+                <Icon name="save" /> Zapisz projekt
+              </button>
+              <button data-testid="m-import" onClick={() => useApp.getState().setDialog('import')}>
+                <Icon name="import" /> Import
+              </button>
+              <button data-testid="m-export" onClick={() => useApp.getState().setDialog('export')}>
+                <Icon name="export" /> Eksport
+              </button>
+              <button
+                onClick={() => {
+                  if (!confirm('Utworzyć nowy, pusty projekt? Bieżący można cofnąć przyciskiem „Cofnij”.')) return;
+                  const st = useApp.getState();
+                  st.commit({ ...emptyDoc(), printer: clone(st.doc.printer) });
+                  st.setSelection(null);
+                }}
+              >
+                <Icon name="new" /> Nowy projekt
+              </button>
+              <button onClick={() => useApp.getState().setDialog('printer')}>
+                <Icon name="settings" /> Drukarka
+              </button>
+            </div>
+          )}
+        </div>
         <button
-          className="tb"
+          className="tb desktop-only"
           title="Nowy projekt"
           data-testid="new-project"
           onClick={() => {
@@ -112,7 +147,7 @@ export function App() {
           <Icon name="new" />
           <span>Nowy</span>
         </button>
-        <button className="tb" title="Otwórz projekt lub plik (Ctrl+O)" data-testid="open-file" onClick={() => openInput.current?.click()}>
+        <button className="tb desktop-only" title="Otwórz projekt lub plik (Ctrl+O)" data-testid="open-file" onClick={() => openInput.current?.click()}>
           <Icon name="open" />
           <span>Otwórz</span>
         </button>
@@ -128,15 +163,15 @@ export function App() {
             if (f) await importFile(f, { placeOnBed: true, gltfMeters: false }).catch((err) => useApp.getState().notify(String(err.message ?? err), 'error'));
           }}
         />
-        <button className="tb" title="Zapisz projekt z historią operacji (Ctrl+S)" data-testid="save-project" onClick={() => exportAndDownload('project').catch(() => {})}>
+        <button className="tb desktop-only" title="Zapisz projekt z historią operacji (Ctrl+S)" data-testid="save-project" onClick={() => exportAndDownload('project').catch(() => {})}>
           <Icon name="save" />
           <span>Zapisz</span>
         </button>
-        <button className="tb" title="Import STL, 3MF, OBJ, STEP, IGES, DXF…" data-testid="import" onClick={() => useApp.getState().setDialog('import')}>
+        <button className="tb desktop-only" title="Import STL, 3MF, OBJ, STEP, IGES, DXF…" data-testid="import" onClick={() => useApp.getState().setDialog('import')}>
           <Icon name="import" />
           <span>Import</span>
         </button>
-        <button className="tb" title="Eksport do druku 3D, CAD i Blendera" data-testid="export" onClick={() => useApp.getState().setDialog('export')}>
+        <button className="tb desktop-only" title="Eksport do druku 3D, CAD i Blendera" data-testid="export" onClick={() => useApp.getState().setDialog('export')}>
           <Icon name="export" />
           <span>Eksport</span>
         </button>
@@ -163,10 +198,10 @@ export function App() {
           <Icon name="grid" />
           <span>Siatka</span>
         </button>
-        <div className="grid-step">
+        <div className="grid-step desktop-only">
           <NumberField value={settings.gridStep} min={0.01} unit="mm" title="Krok siatki" onChange={(v) => useApp.getState().setSettings({ gridStep: v })} />
         </div>
-        <button className="tb" title="Obszar roboczy drukarki" data-testid="printer" onClick={() => useApp.getState().setDialog('printer')}>
+        <button className="tb desktop-only" title="Obszar roboczy drukarki" data-testid="printer" onClick={() => useApp.getState().setDialog('printer')}>
           <Icon name="settings" />
           <span>Drukarka</span>
         </button>

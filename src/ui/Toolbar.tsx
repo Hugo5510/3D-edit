@@ -58,7 +58,7 @@ export function Toolbar() {
     st.setTool('select');
     st.setSelection({ kind: 'body', bodyId });
     setPrimOpen(false);
-    st.notify(`Dodano: ${PRIMITIVE_NAMES[kind]}. Wymiary zmienisz w panelu po prawej.`, 'ok');
+    st.notify(`Dodano: ${PRIMITIVE_NAMES[kind]}. Wymiary zmienisz w panelu właściwości.`, 'ok');
   };
 
   return (

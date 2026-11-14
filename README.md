@@ -151,3 +151,54 @@ na stole w układzie stołu Bambu 0–256 mm, spodem w Z=0) i pokazuje instrukcj
 
 Podgląd obszaru roboczego z ustawianymi wymiarami (domyślnie 256 × 256 × 256 mm, gotowe profile drukarek)
 i ostrzeżenie, gdy model się nie mieści (czerwona ramka, komunikat w widoku i w oknie Bambu).
+
+### Etap 6 — wersja mobilna ✅
+Telefon: obrót jednym palcem, przesuw dwoma, zoom szczypaniem (drugi palec anuluje rozpoczęty gest narzędzia);
+rysowanie szkicu stuknięciami (bez potrzeby przeciągania), większe strefy trafienia punktów, krawędzi i manipulatora
+przy dotyku; dolny pasek narzędzi z dużymi przyciskami, panel właściwości jako arkusz od dołu (przycisk ☰ chowa go,
+przycisk warstw pokazuje bryły i historię), operacje na plikach w menu „Plik”; pola wymiarów otwierają klawiaturę
+numeryczną (`inputmode="decimal"`, przecinek dziesiętny). Komputer: mysz (lewy – obrót / zaznaczanie, prawy lub
+środkowy – przesuw, kółko – zoom do kursora), skróty klawiszowe, kostka widoków, siatka z przyciąganiem.
+Instalacja jako aplikacja (PWA) i praca offline — sprawdzone: po pierwszym załadowaniu przeładowanie bez sieci
+uruchamia aplikację razem z jądrem geometrii.
+
+## Skróty klawiszowe
+
+| Klawisz | Działanie | Klawisz | Działanie |
+|---|---|---|---|
+| Esc | zaznaczanie / anuluj | Ctrl+Z / Ctrl+Y | cofnij / ponów |
+| S | nowy szkic | Ctrl+S | zapisz projekt |
+| E | wyciągnij | Ctrl+O | otwórz plik |
+| H | otwór | Delete | usuń zaznaczoną bryłę |
+| O / K | zaokrąglij / fazuj | F | dopasuj widok |
+| U | suma brył | G | przyciąganie do siatki |
+| M | pomiar | X | gumka |
+| w szkicu: L, R, C, P, A | linia, prostokąt, okrąg, wielokąt, łuk 3 pkt | Shift+A / Shift+F / W | łuk ze środkiem / zaokrąglenie narożnika / wypełnij |
+| Enter | zatwierdź operację | R (łuk ze środkiem) | odwróć kierunek łuku |
+
+## Podsumowanie: co działa, czego brakuje, co dalej
+
+**Działa** — wszystkie funkcje z wymagań w zakresie opisanym przy etapach powyżej; testy: 46 jednostkowych
+(geometria B-rep, szkic, formaty) i 16 scenariuszy e2e w przeglądarce (także na emulowanym telefonie), uruchamiane w CI.
+
+**Działa częściowo / świadome ograniczenia**
+- „Otwórz w Bambu Studio” — pobranie 3MF + instrukcja zamiast bezpośredniego otwarcia (powód wyżej: Bambu Studio
+  przyjmuje z przeglądarki tylko adresy http(s), a aplikacja nie ma serwera).
+- Odwołania do ścian/krawędzi oparte na geometrii (nie pełne nazewnictwo topologiczne) — przy dużych zmianach
+  wcześniejszych operacji otwór lub zaokrąglenie może przeskoczyć na sąsiednią ścianę albo zgłosić błąd.
+- Szkic narysowany na ścianie nie podąża za późniejszym przesunięciem bryły.
+- Brak więzów szkicu (równoległość, styczność, wymiary sterujące między elementami).
+- Zaokrąglenie „rogu” = zaokrąglenie wszystkich krawędzi wychodzących z wierzchołka.
+- Siatki importowane: bez zaokrągleń/otworów/wyciągania ścian; operacje logiczne tylko na siatkach zamkniętych.
+- glTF zapisywany domyślnie w mm (wymaganie „1 jednostka = 1 mm”), co odbiega od specyfikacji glTF (metry) —
+  w oknie eksportu jest opcja zapisu w metrach.
+- Na iOS wymagany Safari 17.2+ (WebAssembly z wywołaniami ogonowymi i wyjątkami — wymaganie occt-wasm).
+
+**Co dalej (propozycje):** więzy szkicu, obrót (revolve) i przeciąganie po ścieżce, szyk liniowy/kołowy,
+pogłębienia i gwinty w otworach, lepsze nazewnictwo topologiczne (historia ewolucji ścian z OCCT),
+odbicie lustrzane, eksport 3MF z kolorami.
+
+## Wdrożenie na GitHub Pages
+Workflow `.github/workflows/ci.yml` przy każdym pushu uruchamia testy jednostkowe, build i testy e2e; na gałęzi
+`main` dodatkowo publikuje `dist/` na GitHub Pages. Jednorazowo w repozytorium trzeba włączyć
+**Settings → Pages → Build and deployment → Source: GitHub Actions**.
