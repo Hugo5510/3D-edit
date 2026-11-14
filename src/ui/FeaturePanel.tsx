@@ -52,6 +52,23 @@ export function FeaturePanel({ featureId }: { featureId: string }) {
         />
       );
       break;
+    case 'boolean':
+      body = (
+        <div className="seg">
+          {(
+            [
+              ['union', 'Suma'],
+              ['subtract', 'Różnica'],
+              ['intersect', 'Część wspólna'],
+            ] as const
+          ).map(([k, l]) => (
+            <button key={k} className={f.op === k ? 'on' : ''} onClick={() => up((x) => ((x as typeof f).op = k))}>
+              {l}
+            </button>
+          ))}
+        </div>
+      );
+      break;
     case 'transform': {
       const m = f.matrix;
       body = (

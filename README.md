@@ -92,3 +92,15 @@ symetrycznie; przy „wytnij” kierunek automatycznie w głąb bryły; gumka (o
 Ograniczenia: szkic narysowany na ścianie nie podąża za bryłą, gdy ta zostanie później przesunięta (płaszczyzna
 szkicu jest zapamiętywana w chwili jego utworzenia). Brak więzów geometrycznych (równoległość, styczność itp.) —
 wymiary ustawia się bezpośrednio liczbami.
+
+### Etap 3 — otwory, operacje logiczne, zaokrąglenia ✅
+Działa: otwór — klik w płaską ścianę, średnica, głębokość lub „na wylot”, odległości środka od dwóch krawędzi
+(krawędzie odniesienia podświetlone na czerwono i zielono, przycisk zmiany pary krawędzi; dla ścian bez dwóch
+nierównoległych krawędzi prostych — przesunięcie od środka ściany); suma, różnica i część wspólna (wybór bryły głównej
+i narzędzi kliknięciem); zaokrąglanie i fazowanie wybranych krawędzi, narożników (klik w wierzchołek zaznacza wszystkie
+wychodzące z niego krawędzie) albo wszystkich krawędzi bryły, z podglądem wyniku i czytelnym błędem przy zbyt dużym
+promieniu; gumka; pomiar odległości między dwoma punktami (przyciąganie do wierzchołków i środków okręgów, ΔX/ΔY/ΔZ).
+Każdy parametr operacji można zmienić później w historii — geometria przebudowuje się od razu.
+
+Ograniczenia: zaokrąglenie „narożnika” zaokrągla całe krawędzie wychodzące z wierzchołka (OCCT nie ma osobnej
+operacji „zaokrąglij tylko róg”). Otwór ma prosty kształt walcowy (bez pogłębień i gwintów).

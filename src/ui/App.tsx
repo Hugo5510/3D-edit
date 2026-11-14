@@ -161,7 +161,7 @@ function shortcutMap(): Record<string, () => void> {
   const st = useApp.getState();
   const inSketch = !!st.activeSketchId;
   const t = (id: Parameters<typeof st.setTool>[0]) => () => st.setTool(id);
-  const base: Record<string, () => void> = { e: t('extrude'), x: t('erase'), s: () => !inSketch && st.setTool('sketchPlane'), ...shortcutHandlers };
+  const base: Record<string, () => void> = { e: t('extrude'), x: t('erase'), h: t('hole'), o: t('fillet'), k: t('chamfer'), m: t('measure'), u: () => st.setTool('boolean', { op: 'union' }), s: () => !inSketch && st.setTool('sketchPlane'), ...shortcutHandlers };
   if (inSketch) Object.assign(base, { l: t('line'), r: t('rect'), c: t('circle'), p: t('polygon'), a: t('arc3'), w: t('fill') });
   return base;
 }
