@@ -179,7 +179,7 @@ uruchamia aplikację razem z jądrem geometrii.
 ## Podsumowanie: co działa, czego brakuje, co dalej
 
 **Działa** — wszystkie funkcje z wymagań w zakresie opisanym przy etapach powyżej; testy: 46 jednostkowych
-(geometria B-rep, szkic, formaty) i 16 scenariuszy e2e w przeglądarce (także na emulowanym telefonie), uruchamiane w CI.
+(geometria B-rep, szkic, formaty) i 14 scenariuszy e2e w przeglądarce (także na emulowanym telefonie), uruchamiane w CI.
 
 **Działa częściowo / świadome ograniczenia**
 - „Otwórz w Bambu Studio” — pobranie 3MF + instrukcja zamiast bezpośredniego otwarcia (powód wyżej: Bambu Studio
