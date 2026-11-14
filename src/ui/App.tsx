@@ -11,6 +11,8 @@ import { emptyDoc } from '../model/types';
 import { NumberField } from './NumberField';
 import { SketchBar, DimBox } from './SketchPanels';
 import { ExportDialog, ImportDialog } from './FileDialogs';
+import { BambuDialog } from './BambuDialog';
+import { ErrorBoundary } from './ErrorBoundary';
 import { exportAndDownload, importFile, IMPORT_ACCEPT } from '../io/fileOps';
 
 export function App() {
@@ -138,6 +140,10 @@ export function App() {
           <Icon name="export" />
           <span>Eksport</span>
         </button>
+        <button className="tb accent" title="Zapisz 3MF ułożony na stole i otwórz w Bambu Studio" data-testid="bambu" onClick={() => useApp.getState().setDialog('bambu')}>
+          <Icon name="bambu" />
+          <span>Otwórz w Bambu Studio</span>
+        </button>
         <div className="sep" />
         <button className="tb" title="Cofnij (Ctrl+Z)" data-testid="undo" disabled={!past} onClick={() => useApp.getState().undo()}>
           <Icon name="undo" />
@@ -197,17 +203,24 @@ export function App() {
           {kernelError && <div className="error-box floating">Błąd jądra geometrii: {kernelError}</div>}
         </div>
         <aside className={'side' + (treeOpen ? ' tree-open' : '')}>
-          <PropertiesPanel />
-          <FeatureTree />
+          <ErrorBoundary label="panel właściwości">
+            <PropertiesPanel />
+          </ErrorBoundary>
+          <ErrorBoundary label="historia">
+            <FeatureTree />
+          </ErrorBoundary>
         </aside>
       </div>
       <footer className="status">
         <span data-testid="status">{building ? 'Przeliczanie…' : kernelReady ? 'Gotowe' : 'Start…'}</span>
         <span className="muted">1 jednostka = 1 mm · oś Z do góry</span>
       </footer>
-      {dialog === 'printer' && <PrinterDialog />}
-      {dialog === 'import' && <ImportDialog />}
-      {dialog === 'export' && <ExportDialog />}
+      <ErrorBoundary label="okno dialogowe">
+        {dialog === 'printer' && <PrinterDialog />}
+        {dialog === 'import' && <ImportDialog />}
+        {dialog === 'export' && <ExportDialog />}
+        {dialog === 'bambu' && <BambuDialog />}
+      </ErrorBoundary>
     </div>
   );
 }

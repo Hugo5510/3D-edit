@@ -130,3 +130,24 @@ Testy (Vitest): sześcian 20 mm po eksporcie do STL (bin/ASCII), 3MF, OBJ, PLY i
 20 × 20 × 20 mm i jest siatką zamkniętą; bryła z otworem i zaokrągleniami po STL jest zamknięta, a jej objętość różni
 się od B-rep o < 0,5 %; STEP i IGES zachowują objętość; 3MF w calach i z transformacjami; DXF z łukami i LWPOLYLINE;
 plik projektu. Testy e2e (Playwright) pobierają pliki z działającej aplikacji i sprawdzają je tym samym kodem.
+
+### Etap 5 — Bambu Studio ✅ (z zastrzeżeniem: pobranie pliku zamiast bezpośredniego otwarcia)
+**Jak Bambu Studio przyjmuje pliki z zewnątrz** (sprawdzone w kodzie źródłowym `bambulab/BambuStudio`,
+`src/slic3r/GUI/GUI_App.cpp` i `src/platform/osx/Info.plist.in`, listopad 2026):
+- Windows i Linux: schemat URL `bambustudio://open?file=<adres URL>`;
+- macOS: schemat `bambustudioopen://<zakodowany adres URL>` (zarejestrowany w `CFBundleURLTypes`);
+- w obu przypadkach Bambu Studio **samo pobiera plik przez http(s)**; dla domen spoza listy zaufanych
+  (serwery MakerWorld) pokazuje pytanie „This file is not from a trusted site, do you want to open it anyway?”;
+- wiersz poleceń: ścieżki plików podane jako argumenty są otwierane (`bambu-studio plik.3mf`), a system
+  otwiera pliki .3mf skojarzone z programem.
+
+**Wniosek:** z poziomu przeglądarki bezpośrednie otwarcie nie jest możliwe na żadnej platformie — aplikacja
+nie ma serwera, a wygenerowany plik istnieje tylko w przeglądarce (adres `blob:` nie jest dostępny dla innego
+programu). Jedyną drogą przez schemat URL byłoby wysłanie modelu na publiczny serwer, czego świadomie nie robię
+(prywatność, brak backendu). Dlatego przycisk **„Otwórz w Bambu Studio”** pobiera plik 3MF (mm, model wyśrodkowany
+na stole w układzie stołu Bambu 0–256 mm, spodem w Z=0) i pokazuje instrukcję otwarcia dla wykrytego systemu
+(skojarzenie plików / „Otwórz za pomocą” / przeciągnięcie / argument wiersza poleceń). Na Androidzie i iOS
+(gdzie Bambu Studio nie istnieje) dostępny jest przycisk „Udostępnij”, by przesłać plik na komputer.
+
+Podgląd obszaru roboczego z ustawianymi wymiarami (domyślnie 256 × 256 × 256 mm, gotowe profile drukarek)
+i ostrzeżenie, gdy model się nie mieści (czerwona ramka, komunikat w widoku i w oknie Bambu).
