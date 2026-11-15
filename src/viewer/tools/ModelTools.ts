@@ -6,7 +6,9 @@ import { clone, newBodyMeta, newSketch, removeFeature, updateSketch, deleteBody 
 import type { ExtrudeFeature, ExtrudeMode, ExtrudeSource, Plane, Sketch, Vec3 } from '../../model/types';
 import { anyPerp, uid, v3 } from '../../model/math';
 import { loopPolygon, orderLoop, polygonArea, toWorld } from '../../model/sketchGeom';
-import { removeEntity } from '../../model/sketchOps';
+import { fillAt, fillableRegionAt, removeEntity } from '../../model/sketchOps';
+import type { SketchLayer } from '../SketchLayer';
+import { sketchCursor } from './sketchPick';
 import { pickSketch } from './sketchPick';
 import { viewFromPlane } from './sketchMode';
 
@@ -102,7 +104,10 @@ export class ExtrudeTool implements Tool {
   private hit: THREE.Mesh;
   private dragStart: { param: number; dist: number } | null = null;
 
-  constructor(private viewer: Viewer) {
+  constructor(
+    private viewer: Viewer,
+    private layer?: SketchLayer,
+  ) {
     const mat = new THREE.MeshBasicMaterial({ color: 0xff7a00, depthTest: false, transparent: true });
     const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.7, 8), mat);
     shaft.position.y = 0.35;
@@ -120,10 +125,11 @@ export class ExtrudeTool implements Tool {
     this.st = null;
     if (sel?.kind === 'profile') this.begin({ kind: 'profile', sketchId: sel.sketchId, profileId: sel.profileId });
     else if (sel?.kind === 'face') this.beginFace(sel.bodyId, sel.face);
-    else s.setToolState({ hint: 'Kliknij wypełniony kontur szkicu albo płaską ścianę bryły.' });
+    else s.setToolState({ hint: 'Kliknij obszar szkicu (zamknięty kontur – wypełni się sam) albo płaską ścianę bryły.' });
   }
 
   deactivate() {
+    this.layer?.setPreview(null, []);
     if (this.st) this.cancel();
     this.arrow.removeFromParent();
     this.viewer.setHighlight({});
@@ -312,14 +318,42 @@ export class ExtrudeTool implements Tool {
     useApp.getState().setDragInfo(null);
   }
 
+  /** Niewypełniony zamknięty obszar szkicu pod kursorem (najbliższy kamerze), jeśli nie zasłania go bryła. */
+  private fillableAt(e: PointerInfo): { sk: Sketch; p: [number, number]; polys: [number, number][][] } | null {
+    const s = useApp.getState();
+    const hit = this.viewer.pickBody(e);
+    let best: { sk: Sketch; p: [number, number]; polys: [number, number][][]; depth: number } | null = null;
+    for (const sk of s.doc.sketches) {
+      if (!sk.visible && sk.id !== s.activeSketchId) continue;
+      const c = sketchCursor(this.viewer, e, sk);
+      if (!c) continue;
+      const depth = this.viewer.camera.position.distanceTo(c.world);
+      if (hit && depth > hit.distance + 1) continue;
+      if (best && depth >= best.depth) continue;
+      const polys = fillableRegionAt(sk, c.p);
+      if (polys) best = { sk, p: c.p, polys, depth };
+    }
+    return best;
+  }
+
   hover(e: PointerInfo) {
     if (this.st) return;
     const sk = pickSketch(this.viewer, e, true);
     if (sk) {
+      this.layer?.setPreview(null, []);
       useApp.getState().setSelection(sk.selection);
       this.viewer.setHighlight({});
       return;
     }
+    const fr = this.fillableAt(e);
+    if (fr) {
+      this.layer?.setPreview(fr.sk.plane, fr.polys);
+      if (useApp.getState().selection) useApp.getState().setSelection(null);
+      this.viewer.setHighlight({});
+      this.viewer.requestRender();
+      return;
+    }
+    this.layer?.setPreview(null, []);
     const h = this.viewer.pickBody(e);
     const f = h ? this.viewer.bodies.get(h.bodyId)?.data.faces[h.face] : null;
     this.viewer.setHighlight(h && f?.normal ? { faces: [{ bodyId: h.bodyId, face: h.face, color: 0xff9a00 }] } : {});
@@ -331,6 +365,21 @@ export class ExtrudeTool implements Tool {
     if (sk && sk.kind === 'profile') {
       this.begin({ kind: 'profile', sketchId: sk.sketchId, profileId: sk.id });
       return;
+    }
+    // zamknięty, ale jeszcze niewypełniony obszar – wypełniamy go automatycznie i od razu wyciągamy
+    const fr = this.fillableAt(e);
+    if (fr) {
+      const s = useApp.getState();
+      let pid: string | null = null;
+      const next = updateSketch(s.doc, fr.sk.id, (x) => {
+        pid = fillAt(x, fr.p);
+      });
+      if (pid) {
+        s.commit(next);
+        this.layer?.setPreview(null, []);
+        this.begin({ kind: 'profile', sketchId: fr.sk.id, profileId: pid });
+        return;
+      }
     }
     const h = this.viewer.pickBody(e);
     if (h) this.beginFace(h.bodyId, h.face);

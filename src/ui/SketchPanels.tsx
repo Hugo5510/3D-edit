@@ -60,6 +60,10 @@ export function SketchBar() {
         <Icon name="fill" size={20} />
         <span>Wypełnij wszystko</span>
       </button>
+      <button className="tool" data-testid="sk-extrude" onClick={() => extrudeSketch(sk.id)} title="Wyciągnij szkic w bryłę 3D (E)">
+        <Icon name="extrude" size={20} />
+        <span>Wyciągnij</span>
+      </button>
       <button className="tool primary" data-testid="sk-finish" onClick={exitSketch} title="Zakończ edycję szkicu">
         <Icon name="check" size={20} />
         <span>Zakończ szkic</span>
@@ -71,6 +75,44 @@ export function SketchBar() {
       )}
     </div>
   );
+}
+
+/**
+ * Przejście ze szkicu 2D do wyciągnięcia 3D: zaznaczony obszar wyciągany jest od razu; gdy nic nie jest
+ * wypełnione, wypełniane są wszystkie zamknięte obszary; przy jednym obszarze wyciąganie startuje od razu,
+ * przy kilku – wystarczy kliknąć wybrany.
+ */
+export function extrudeSketch(sketchId: string) {
+  const st = useApp.getState();
+  const sel = st.selection;
+  if (sel?.kind === 'profile' && sel.sketchId === sketchId) {
+    st.setTool('extrude');
+    return;
+  }
+  const cur = st.doc.sketches.find((s) => s.id === sketchId);
+  if (!cur) return;
+  let doc = st.doc;
+  if (!cur.profiles.length) doc = updateSketch(st.doc, sketchId, (s) => fillAll(s));
+  const sk = doc.sketches.find((s) => s.id === sketchId)!;
+  if (!sk.profiles.length) {
+    const gp = gaps(sk).filter((g) => g.distance > 0);
+    st.notify(
+      gp.length
+        ? `Nie ma czego wyciągnąć – kontur jest niedomknięty (przerwy zaznaczone na czerwono, najmniejsza ${fmt(Math.min(...gp.map((g) => g.distance)))} mm). Połącz końce linii.`
+        : 'Nie ma czego wyciągnąć – narysuj zamknięty kontur (np. prostokąt, okrąg albo linie otaczające obszar).',
+      'error',
+    );
+    return;
+  }
+  if (doc !== st.doc) st.commit(doc);
+  if (sk.profiles.length === 1) {
+    st.setSelection({ kind: 'profile', sketchId, profileId: sk.profiles[0].id });
+    st.setTool('extrude');
+  } else {
+    st.setSelection(null);
+    st.setTool('extrude');
+    st.notify(`Szkic ma ${sk.profiles.length} wypełnione obszary – kliknij ten, który chcesz wyciągnąć.`, 'info');
+  }
 }
 
 /** Pole wymiarów pojawiające się w trakcie rysowania. */

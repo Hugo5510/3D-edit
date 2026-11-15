@@ -11,6 +11,7 @@ import {
   addPolygon,
   addRect,
   fillAt,
+  fillableRegionAt,
   filletCorner,
   mergePoints,
   movePoint,
@@ -580,9 +581,17 @@ export class SketchFilletTool extends SketchToolBase {
 // -------------------------------------------------------------------- wypełnianie
 
 export class FillTool extends SketchToolBase {
-  hint = 'Kliknij wewnątrz zamkniętego konturu, aby zamienić go w wypełnioną powierzchnię gotową do wyciągnięcia.';
+  hint = 'Kliknij wolną przestrzeń otoczoną liniami (także przecinającymi się), aby ją wypełnić – potem „Wyciągnij”.';
   pointerDown() {
     return false;
+  }
+  hover(e: PointerInfo) {
+    const sk = activeSketch();
+    if (!sk) return;
+    const c = sketchCursor(this.viewer, e, sk);
+    const polys = c ? fillableRegionAt(sk, c.p) : null;
+    this.layer.setPreview(sk.plane, polys ?? []);
+    this.viewer.requestRender();
   }
   click(e: PointerInfo) {
     const sk = activeSketch();
@@ -597,7 +606,8 @@ export class FillTool extends SketchToolBase {
     if (pid) {
       st.commit(next);
       st.setSelection({ kind: 'profile', sketchId: sk.id, profileId: pid });
-      st.notify('Wypełniono kontur – możesz go teraz wyciągnąć (narzędzie „Wyciągnij”).', 'ok');
+      this.layer.setPreview(null, []);
+      st.notify('Wypełniono obszar – kliknij „Wyciągnij”, aby zrobić z niego bryłę 3D.', 'ok');
     } else {
       const g = gaps(sk).filter((x) => x.distance > 0);
       if (g.length) {

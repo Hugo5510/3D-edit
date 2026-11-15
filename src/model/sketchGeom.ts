@@ -1,6 +1,7 @@
 // Geometria szkicu: łuki, uporządkowanie pętli, wykrywanie zamkniętych konturów i przerw.
 import { v2, v3, planeY } from './math';
 import type { Plane, Sketch, SketchEntity, Vec2, Vec3 } from './types';
+import { splitView } from './sketchSplit';
 
 export const SKETCH_TOL = 1e-6;
 
@@ -172,16 +173,68 @@ function graph(sk: Sketch) {
   return adj;
 }
 
-/** Punkty, w których kontur się urywa (stopień 1). */
-export function danglingPoints(sk: Sketch): string[] {
+/**
+ * Elementy, które nie mogą należeć do żadnej zamkniętej pętli (wiszące „ogonki”, np. końcówka linii
+ * wystająca poza przecięcie). Usuwane iteracyjnie od końców o stopniu 1.
+ */
+export function danglingEntities(sk: Sketch): Set<string> {
   const adj = graph(sk);
-  return [...adj.entries()].filter(([, es]) => es.length === 1).map(([p]) => p);
+  const ends = new Map<string, [string, string]>();
+  for (const e of sk.entities) if (e.type !== 'circle' && e.a !== e.b) ends.set(e.id, [e.a, e.b]);
+  const removed = new Set<string>();
+  const queue = [...adj.entries()].filter(([, es]) => es.length === 1).map(([p]) => p);
+  while (queue.length) {
+    const p = queue.pop()!;
+    const live = (adj.get(p) ?? []).filter((id) => !removed.has(id));
+    if (live.length !== 1) continue;
+    const id = live[0];
+    removed.add(id);
+    const [a, b] = ends.get(id)!;
+    const other = a === p ? b : a;
+    if ((adj.get(other) ?? []).filter((x) => !removed.has(x)).length === 1) queue.push(other);
+  }
+  return removed;
+}
+
+/**
+ * Punkty, w których kontur się urywa: końce otwartych łańcuchów. Końce linii celowo wystających poza
+ * przecięcie z inną linią (łańcuch dochodzi do rozgałęzienia) nie są przerwą i nie są zgłaszane.
+ */
+export function danglingPoints(sk: Sketch): string[] {
+  const s = splitView(sk);
+  const adj = graph(s);
+  const ends = new Map<string, [string, string]>();
+  for (const e of s.entities) if (e.type !== 'circle') ends.set(e.id, [e.a, e.b]);
+  const out: string[] = [];
+  for (const [p, es] of adj) {
+    if (es.length !== 1) continue;
+    // idziemy wzdłuż łańcucha punktów stopnia 2
+    let cur = p;
+    let ent = es[0];
+    let open = true;
+    for (let guard = 0; guard < 100000; guard++) {
+      const [a, b] = ends.get(ent)!;
+      const next = a === cur ? b : a;
+      const nes = adj.get(next) ?? [];
+      if (nes.length === 1) break; // drugi koniec otwartego łańcucha
+      if (nes.length >= 3 || next === p) {
+        open = false; // łańcuch dochodzi do rozgałęzienia – wystająca końcówka
+        break;
+      }
+      ent = nes[0] === ent ? nes[1] : nes[0];
+      cur = next;
+    }
+    if (open) out.push(p);
+  }
+  return out;
 }
 
 /** Pary niedomkniętych końców leżących najbliżej siebie (wskazanie przerwy). */
 export function gaps(sk: Sketch): { a: Vec2; b: Vec2; distance: number }[] {
   const pts = pointMap(sk);
-  const ends = danglingPoints(sk).map((id) => ({ id, p: pts.get(id)! }));
+  const ends = danglingPoints(sk)
+    .filter((id) => pts.has(id))
+    .map((id) => ({ id, p: pts.get(id)! }));
   const used = new Set<string>();
   const out: { a: Vec2; b: Vec2; distance: number }[] = [];
   const pairs: { i: number; j: number; d: number }[] = [];
@@ -215,8 +268,9 @@ export function findLoops(sk: Sketch): { ids: string[]; poly: Vec2[]; area: numb
   // Ściany grafu płaskiego: dla każdej półkrawędzi idziemy, skręcając maksymalnie w prawo.
   type Half = { ent: string; from: string; to: string; angOut: number; angIn: number };
   const halves: Half[] = [];
+  const tails = danglingEntities(sk);
   for (const e of sk.entities) {
-    if (e.type === 'circle' || e.a === e.b) continue;
+    if (e.type === 'circle' || e.a === e.b || tails.has(e.id)) continue;
     const a = pts.get(e.a)!;
     const b = pts.get(e.b)!;
     let dirA: Vec2, dirB: Vec2; // kierunki wyjścia z a oraz z b
