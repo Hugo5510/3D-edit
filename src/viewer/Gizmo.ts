@@ -68,7 +68,7 @@ export class Gizmo {
   }
 
   updateScale() {
-    const s = this.viewer.worldPerPixel(this.center) * 110;
+    const s = this.viewer.worldPerPixel(this.center) * (window.matchMedia?.('(pointer: coarse)').matches ? 150 : 110);
     this.group.scale.setScalar(s);
     this.group.updateMatrixWorld(true);
   }

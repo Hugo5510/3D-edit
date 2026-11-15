@@ -6,7 +6,7 @@ import { refs } from '../viewer/ref';
 import type { DimDef } from '../viewer/tools/SketchTools';
 import { exitSketch } from '../viewer/tools/sketchMode';
 import { fillAll, movePoint, rectSize, setArcRadius, setLineAngle, setLineLength, setPolygonSides, setRectSize, applyPolygon, getPoint, removeEntity } from '../model/sketchOps';
-import { arcGeometry, gaps, loopPolygon, orderLoop, pointMap, polygonArea } from '../model/sketchGeom';
+import { arcGeometry, gaps, loopArea, orderLoop, pointMap } from '../model/sketchGeom';
 import { deg, fmt } from '../model/math';
 import type { PolygonGroup, RectGroup, Sketch } from '../model/types';
 
@@ -123,7 +123,7 @@ export function SketchSelectionPanel() {
     if (!pr) return null;
     let area = 0;
     try {
-      const loops = pr.loops.map((l) => Math.abs(polygonArea(loopPolygon(orderLoop(sk, l)))));
+      const loops = pr.loops.map((l) => Math.abs(loopArea(orderLoop(sk, l))));
       area = loops[0] - loops.slice(1).reduce((a, b) => a + b, 0);
     } catch {
       area = 0;

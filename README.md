@@ -92,3 +92,113 @@ symetrycznie; przy „wytnij” kierunek automatycznie w głąb bryły; gumka (o
 Ograniczenia: szkic narysowany na ścianie nie podąża za bryłą, gdy ta zostanie później przesunięta (płaszczyzna
 szkicu jest zapamiętywana w chwili jego utworzenia). Brak więzów geometrycznych (równoległość, styczność itp.) —
 wymiary ustawia się bezpośrednio liczbami.
+
+### Etap 3 — otwory, operacje logiczne, zaokrąglenia ✅
+Działa: otwór — klik w płaską ścianę, średnica, głębokość lub „na wylot”, odległości środka od dwóch krawędzi
+(krawędzie odniesienia podświetlone na czerwono i zielono, przycisk zmiany pary krawędzi; dla ścian bez dwóch
+nierównoległych krawędzi prostych — przesunięcie od środka ściany); suma, różnica i część wspólna (wybór bryły głównej
+i narzędzi kliknięciem); zaokrąglanie i fazowanie wybranych krawędzi, narożników (klik w wierzchołek zaznacza wszystkie
+wychodzące z niego krawędzie) albo wszystkich krawędzi bryły, z podglądem wyniku i czytelnym błędem przy zbyt dużym
+promieniu; gumka; pomiar odległości między dwoma punktami (przyciąganie do wierzchołków i środków okręgów, ΔX/ΔY/ΔZ).
+Każdy parametr operacji można zmienić później w historii — geometria przebudowuje się od razu.
+
+Ograniczenia: zaokrąglenie „narożnika” zaokrągla całe krawędzie wychodzące z wierzchołka (OCCT nie ma osobnej
+operacji „zaokrąglij tylko róg”). Otwór ma prosty kształt walcowy (bez pogłębień i gwintów).
+
+### Etap 4 — import i eksport ✅
+| Format | Eksport | Import | Uwagi |
+|---|---|---|---|
+| STL binarny / ASCII | ✅ | ✅ | jednostka mm (STL nie zapisuje jednostek) |
+| 3MF | ✅ | ✅ | `unit="millimeter"`; import przelicza inne jednostki, obsługuje komponenty i transformacje (także 3MF z Bambu Studio z modelami w osobnych plikach) |
+| OBJ | ✅ | ✅ | wszystkie grupy OBJ łączone w jedną bryłę |
+| PLY | ✅ (binarny) | ✅ (ASCII i binarny) | |
+| glTF / GLB | ✅ GLB | ✅ GLB i .gltf z danymi osadzonymi | domyślnie 1 jednostka = 1 mm (zgodnie z wymaganiem); opcja zapisu w metrach (specyfikacja glTF) |
+| STEP | ✅ (AP214, mm) | ✅ jako bryła B-rep | |
+| IGES | ✅ (encje 186, mm) | ✅ jako bryła B-rep | moduł IGES (~11 MB gzip) pobierany przy pierwszym użyciu |
+| DXF | ✅ szkice (LINE/ARC/CIRCLE, `$INSUNITS`=mm) | ✅ LINE, ARC, CIRCLE, LWPOLYLINE, POLYLINE | import tworzy szkic na XY |
+| Projekt `.3dedit` | ✅ | ✅ | ZIP z historią operacji, szkicami i zaimportowanymi plikami |
+
+Formaty zamknięte (IPT/IAM, DWG, F3D, .blend, SLDPRT) nie są udawane: przy próbie importu pojawia się
+komunikat, z jakiego otwartego formatu skorzystać, a okna importu i eksportu zawierają tabelę „program → format”.
+
+Zaimportowane siatki (STL, 3MF, OBJ, PLY, glTF) można przesuwać, obracać, skalować i łączyć z bryłami
+operacjami logicznymi (liczonymi przez manifold-3d — wynik jest siatką). Ograniczenia (opisane też w interfejsie):
+brak zaokrągleń/fazowań, narzędzia „Otwór”, wyciągania ścian i szkicu na ścianie siatki; operacje logiczne wymagają
+siatki zamkniętej; eksport siatki do STEP/IGES zapisuje ją jako płaskie trójkątne ściany (do 20 000 trójkątów).
+
+Testy (Vitest): sześcian 20 mm po eksporcie do STL (bin/ASCII), 3MF, OBJ, PLY i GLB i ponownym imporcie ma
+20 × 20 × 20 mm i jest siatką zamkniętą; bryła z otworem i zaokrągleniami po STL jest zamknięta, a jej objętość różni
+się od B-rep o < 0,5 %; STEP i IGES zachowują objętość; 3MF w calach i z transformacjami; DXF z łukami i LWPOLYLINE;
+plik projektu. Testy e2e (Playwright) pobierają pliki z działającej aplikacji i sprawdzają je tym samym kodem.
+
+### Etap 5 — Bambu Studio ✅ (z zastrzeżeniem: pobranie pliku zamiast bezpośredniego otwarcia)
+**Jak Bambu Studio przyjmuje pliki z zewnątrz** (sprawdzone w kodzie źródłowym `bambulab/BambuStudio`,
+`src/slic3r/GUI/GUI_App.cpp` i `src/platform/osx/Info.plist.in`, listopad 2026):
+- Windows i Linux: schemat URL `bambustudio://open?file=<adres URL>`;
+- macOS: schemat `bambustudioopen://<zakodowany adres URL>` (zarejestrowany w `CFBundleURLTypes`);
+- w obu przypadkach Bambu Studio **samo pobiera plik przez http(s)**; dla domen spoza listy zaufanych
+  (serwery MakerWorld) pokazuje pytanie „This file is not from a trusted site, do you want to open it anyway?”;
+- wiersz poleceń: ścieżki plików podane jako argumenty są otwierane (`bambu-studio plik.3mf`), a system
+  otwiera pliki .3mf skojarzone z programem.
+
+**Wniosek:** z poziomu przeglądarki bezpośrednie otwarcie nie jest możliwe na żadnej platformie — aplikacja
+nie ma serwera, a wygenerowany plik istnieje tylko w przeglądarce (adres `blob:` nie jest dostępny dla innego
+programu). Jedyną drogą przez schemat URL byłoby wysłanie modelu na publiczny serwer, czego świadomie nie robię
+(prywatność, brak backendu). Dlatego przycisk **„Otwórz w Bambu Studio”** pobiera plik 3MF (mm, model wyśrodkowany
+na stole w układzie stołu Bambu 0–256 mm, spodem w Z=0) i pokazuje instrukcję otwarcia dla wykrytego systemu
+(skojarzenie plików / „Otwórz za pomocą” / przeciągnięcie / argument wiersza poleceń). Na Androidzie i iOS
+(gdzie Bambu Studio nie istnieje) dostępny jest przycisk „Udostępnij”, by przesłać plik na komputer.
+
+Podgląd obszaru roboczego z ustawianymi wymiarami (domyślnie 256 × 256 × 256 mm, gotowe profile drukarek)
+i ostrzeżenie, gdy model się nie mieści (czerwona ramka, komunikat w widoku i w oknie Bambu).
+
+### Etap 6 — wersja mobilna ✅
+Telefon: obrót jednym palcem, przesuw dwoma, zoom szczypaniem (drugi palec anuluje rozpoczęty gest narzędzia);
+rysowanie szkicu stuknięciami (bez potrzeby przeciągania), większe strefy trafienia punktów, krawędzi i manipulatora
+przy dotyku; dolny pasek narzędzi z dużymi przyciskami, panel właściwości jako arkusz od dołu (przycisk ☰ chowa go,
+przycisk warstw pokazuje bryły i historię), operacje na plikach w menu „Plik”; pola wymiarów otwierają klawiaturę
+numeryczną (`inputmode="decimal"`, przecinek dziesiętny). Komputer: mysz (lewy – obrót / zaznaczanie, prawy lub
+środkowy – przesuw, kółko – zoom do kursora), skróty klawiszowe, kostka widoków, siatka z przyciąganiem.
+Instalacja jako aplikacja (PWA) i praca offline — sprawdzone: po pierwszym załadowaniu przeładowanie bez sieci
+uruchamia aplikację razem z jądrem geometrii.
+
+## Skróty klawiszowe
+
+| Klawisz | Działanie | Klawisz | Działanie |
+|---|---|---|---|
+| Esc | zaznaczanie / anuluj | Ctrl+Z / Ctrl+Y | cofnij / ponów |
+| S | nowy szkic | Ctrl+S | zapisz projekt |
+| E | wyciągnij | Ctrl+O | otwórz plik |
+| H | otwór | Delete | usuń zaznaczoną bryłę |
+| O / K | zaokrąglij / fazuj | F | dopasuj widok |
+| U | suma brył | G | przyciąganie do siatki |
+| M | pomiar | X | gumka |
+| w szkicu: L, R, C, P, A | linia, prostokąt, okrąg, wielokąt, łuk 3 pkt | Shift+A / Shift+F / W | łuk ze środkiem / zaokrąglenie narożnika / wypełnij |
+| Enter | zatwierdź operację | R (łuk ze środkiem) | odwróć kierunek łuku |
+
+## Podsumowanie: co działa, czego brakuje, co dalej
+
+**Działa** — wszystkie funkcje z wymagań w zakresie opisanym przy etapach powyżej; testy: 46 jednostkowych
+(geometria B-rep, szkic, formaty) i 14 scenariuszy e2e w przeglądarce (także na emulowanym telefonie), uruchamiane w CI.
+
+**Działa częściowo / świadome ograniczenia**
+- „Otwórz w Bambu Studio” — pobranie 3MF + instrukcja zamiast bezpośredniego otwarcia (powód wyżej: Bambu Studio
+  przyjmuje z przeglądarki tylko adresy http(s), a aplikacja nie ma serwera).
+- Odwołania do ścian/krawędzi oparte na geometrii (nie pełne nazewnictwo topologiczne) — przy dużych zmianach
+  wcześniejszych operacji otwór lub zaokrąglenie może przeskoczyć na sąsiednią ścianę albo zgłosić błąd.
+- Szkic narysowany na ścianie nie podąża za późniejszym przesunięciem bryły.
+- Brak więzów szkicu (równoległość, styczność, wymiary sterujące między elementami).
+- Zaokrąglenie „rogu” = zaokrąglenie wszystkich krawędzi wychodzących z wierzchołka.
+- Siatki importowane: bez zaokrągleń/otworów/wyciągania ścian; operacje logiczne tylko na siatkach zamkniętych.
+- glTF zapisywany domyślnie w mm (wymaganie „1 jednostka = 1 mm”), co odbiega od specyfikacji glTF (metry) —
+  w oknie eksportu jest opcja zapisu w metrach.
+- Na iOS wymagany Safari 17.2+ (WebAssembly z wywołaniami ogonowymi i wyjątkami — wymaganie occt-wasm).
+
+**Co dalej (propozycje):** więzy szkicu, obrót (revolve) i przeciąganie po ścieżce, szyk liniowy/kołowy,
+pogłębienia i gwinty w otworach, lepsze nazewnictwo topologiczne (historia ewolucji ścian z OCCT),
+odbicie lustrzane, eksport 3MF z kolorami.
+
+## Wdrożenie na GitHub Pages
+Workflow `.github/workflows/ci.yml` przy każdym pushu uruchamia testy jednostkowe, build i testy e2e; na gałęzi
+`main` dodatkowo publikuje `dist/` na GitHub Pages. Jednorazowo w repozytorium trzeba włączyć
+**Settings → Pages → Build and deployment → Source: GitHub Actions**.

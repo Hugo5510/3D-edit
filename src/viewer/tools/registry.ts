@@ -4,6 +4,7 @@ import type { ToolId } from '../../state/store';
 import { SelectTool } from './SelectTool';
 import { Arc3Tool, ArcCenterTool, CircleTool, FillTool, LineTool, PolygonTool, RectTool, SketchFilletTool } from './SketchTools';
 import { EraseTool, ExtrudeTool, SketchPlaneTool } from './ModelTools';
+import { BooleanTool, FilletTool, HoleTool, MeasureTool } from './FeatureTools';
 
 export const toolFactories: Partial<Record<ToolId, (v: Viewer, sl: SketchLayer) => Tool>> = {
   select: (v, l) => new SelectTool(v, l),
@@ -18,4 +19,9 @@ export const toolFactories: Partial<Record<ToolId, (v: Viewer, sl: SketchLayer) 
   fill: (v, l) => new FillTool(v, l),
   extrude: (v) => new ExtrudeTool(v),
   erase: (v) => new EraseTool(v),
+  hole: (v) => new HoleTool(v),
+  boolean: (v) => new BooleanTool(v),
+  fillet: (v) => new FilletTool(v, 'fillet'),
+  chamfer: (v) => new FilletTool(v, 'chamfer'),
+  measure: (v) => new MeasureTool(v),
 };
