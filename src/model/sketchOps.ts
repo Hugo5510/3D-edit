@@ -1,7 +1,8 @@
 // Operacje edycji szkicu (czyste funkcje modyfikujące kopię szkicu w miejscu).
 import { uid, v2, rad } from './math';
 import type { ArcEntity, LineEntity, PolygonGroup, RectGroup, Sketch, SketchEntity, Vec2 } from './types';
-import { arcGeometry, bulgeFromCenter, pointMap, regionAt, allRegions } from './sketchGeom';
+import { arcGeometry, bulgeFromCenter, loopPolygon, orderLoop, pointMap, regionAt, allRegions } from './sketchGeom';
+import { curveOf, pointAt, project, splitAtIntersections, splitView } from './sketchSplit';
 
 export interface PointSpec {
   /** Istniejący punkt, z którym nowy punkt ma się połączyć (wspólny wierzchołek). */
@@ -313,6 +314,7 @@ export function filletCorner(sk: Sketch, pointId: string, r: number): ArcEntity 
 
 /** Wypełnia obszar wskazany punktem. Zwraca id profilu albo null, gdy punkt nie leży w zamkniętym konturze. */
 export function fillAt(sk: Sketch, pt: Vec2): string | null {
+  splitAtIntersections(sk);
   const loops = regionAt(sk, pt);
   if (!loops) return null;
   return addProfile(sk, loops);
@@ -330,13 +332,14 @@ function addProfile(sk: Sketch, loops: string[][]): string {
 
 /** Wypełnia wszystkie zamknięte obszary szkicu. */
 export function fillAll(sk: Sketch): string[] {
+  splitAtIntersections(sk);
   return allRegions(sk).map((loops) => addProfile(sk, loops));
 }
 
 /** Najbliższy punkt przyciągania (końce, środki odcinków, środki okręgów). */
 export interface SnapResult {
   p: Vec2;
-  kind: 'point' | 'mid' | 'center' | 'grid' | 'none';
+  kind: 'point' | 'mid' | 'center' | 'edge' | 'grid' | 'none';
   pointId?: string;
 }
 
@@ -375,7 +378,41 @@ export function snap(sk: Sketch, p: Vec2, tol: number, opts: { grid: number | nu
       }
     }
     if (best) return best;
+    // punkt na linii, łuku lub okręgu (koniec nowej linii dotyka istniejącej – można potem wypełnić obszar)
+    const grid: Vec2 | null = opts.grid ? [Math.round(p[0] / opts.grid) * opts.grid, Math.round(p[1] / opts.grid) * opts.grid] : null;
+    let bestE: { p: Vec2; d: number } | null = null;
+    for (const e of sk.entities) {
+      if (opts.exclude && (e.type === 'circle' ? opts.exclude.has(e.c) : opts.exclude.has(e.a) || opts.exclude.has(e.b))) continue;
+      const c = curveOf(e, pts);
+      if (!c) continue;
+      const pr = project(c, p);
+      if (pr.d < tol * 0.5 && (!bestE || pr.d < bestE.d)) {
+        let q = pointAt(c, pr.t);
+        // punkt siatki leżący na krzywej ma pierwszeństwo (okrągłe wymiary)
+        if (grid && project(c, grid).d < 1e-9 && v2.dist(grid, p) < tol) q = grid;
+        bestE = { p: q, d: pr.d };
+      }
+    }
+    if (bestE) return { p: bestE.p, kind: 'edge' };
   }
   if (opts.grid) return { p: [Math.round(p[0] / opts.grid) * opts.grid, Math.round(p[1] / opts.grid) * opts.grid], kind: 'grid' };
   return { p, kind: 'none' };
+}
+
+/**
+ * Obszar, który zostałby wypełniony kliknięciem w punkt (bez zmiany szkicu) – do podglądu pod kursorem.
+ * Zwraca wielokąty pętli (pierwsza zewnętrzna) albo null.
+ */
+export function fillableRegionAt(sk: Sketch, pt: Vec2): Vec2[][] | null {
+  const s = splitView(sk);
+  const loops = regionAt(s, pt);
+  if (!loops) return null;
+  try {
+    return loops.map((ids) => {
+      const poly = loopPolygon(orderLoop(s, ids));
+      return [...poly, poly[0]];
+    });
+  } catch {
+    return null;
+  }
 }

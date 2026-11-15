@@ -20,7 +20,7 @@ import {
   setRectSize,
   snap,
 } from '../src/model/sketchOps';
-import { arcGeometry, bulgeFrom3, danglingPoints, findLoops, gaps, orderLoop, pointMap } from '../src/model/sketchGeom';
+import { arcGeometry, bulgeFrom3, danglingPoints, findLoops, gaps, loopArea, orderLoop, pointMap } from '../src/model/sketchGeom';
 import { Builder } from '../src/kernel/build';
 
 function sk(): Sketch {
@@ -187,5 +187,101 @@ describe('pole konturu', () => {
     const l = addLine(s2, { x: -10, y: 0 }, { x: 10, y: 0 })!;
     addArc(s2, { id: l.b, x: 10, y: 0 }, { id: l.a, x: -10, y: 0 }, 1);
     expect(Math.abs(loopArea(orderLoop(s2, s2.entities.map((e) => e.id))))).toBeCloseTo(50 * Math.PI, 10);
+  });
+});
+
+describe('szkic – wypełnianie przecinających się elementów', () => {
+  const area = (s: Sketch, id: string) => {
+    const pr = s.profiles.find((p) => p.id === id)!;
+    const a = pr.loops.map((l) => Math.abs(loopArea(orderLoop(s, l))));
+    return a[0] - a.slice(1).reduce((x, y) => x + y, 0);
+  };
+
+  it('linia dzieląca prostokąt, kończąca się w połowie jego boków (styk bez wspólnych punktów)', () => {
+    const s = sk();
+    addRect(s, { x: 0, y: 0 }, { x: 10, y: 10 });
+    addLine(s, { x: 4, y: 0 }, { x: 4, y: 10 });
+    const id = fillAt(s, [2, 5])!;
+    expect(id).not.toBeNull();
+    expect(area(s, id)).toBeCloseTo(40, 6);
+    expect(extrudeVolume(s, id)).toBeCloseTo(400, 3);
+    expect(area(s, fillAt(s, [7, 5])!)).toBeCloseTo(60, 6);
+  });
+
+  it('linie wystające poza kontur i krzyżujące się (krzyżyk w prostokącie, kratka #)', () => {
+    const s = sk();
+    addRect(s, { x: 0, y: 0 }, { x: 10, y: 10 });
+    addLine(s, { x: 5, y: -3 }, { x: 5, y: 13 });
+    addLine(s, { x: -2, y: 5 }, { x: 12, y: 5 });
+    expect(fillAll(s).length).toBe(4);
+    for (const p of s.profiles) expect(area(s, p.id)).toBeCloseTo(25, 6);
+
+    const h = sk();
+    addLine(h, { x: 0, y: 3 }, { x: 10, y: 3 });
+    addLine(h, { x: 0, y: 7 }, { x: 10, y: 7 });
+    addLine(h, { x: 3, y: 0 }, { x: 3, y: 10 });
+    addLine(h, { x: 7, y: 0 }, { x: 7, y: 10 });
+    const id = fillAt(h, [5, 5])!;
+    expect(area(h, id)).toBeCloseTo(16, 6);
+    expect(extrudeVolume(h, id)).toBeCloseTo(160, 3);
+    expect(fillAt(h, [1, 1])).toBeNull();
+  });
+
+  it('dwa nachodzące na siebie okręgi dają trzy obszary (soczewka w środku)', () => {
+    const s = sk();
+    addCircle(s, { x: 0, y: 0 }, 5);
+    addCircle(s, { x: 6, y: 0 }, 5);
+    const lens = fillAt(s, [3, 0])!;
+    // pole soczewki: 2 r² acos(d/2r) − (d/2) √(4r² − d²)
+    const r = 5, d = 6;
+    const exact = 2 * r * r * Math.acos(d / (2 * r)) - (d / 2) * Math.sqrt(4 * r * r - d * d);
+    expect(area(s, lens)).toBeCloseTo(exact, 6);
+    expect(extrudeVolume(s, lens, 2)).toBeCloseTo(exact * 2, 2);
+    expect(fillAll(s).length).toBe(3);
+  });
+
+  it('okrąg przecinający bok prostokąta i wcześniejsze wypełnienie zostaje zachowane', () => {
+    const s = sk();
+    addRect(s, { x: 0, y: 0 }, { x: 10, y: 10 });
+    const before = fillAt(s, [5, 5])!;
+    addCircle(s, { x: 10, y: 5 }, 3);
+    const half = fillAt(s, [11, 5])!;
+    expect(area(s, half)).toBeCloseTo((Math.PI * 9) / 2, 2);
+    // stare wypełnienie nadal opisuje cały prostokąt (pętla z podzielonych elementów)
+    expect(s.profiles.some((p) => p.id === before)).toBe(true);
+    expect(area(s, before)).toBeCloseTo(100, 6);
+  });
+
+  it('linia kończąca się na okręgu dzieli go', () => {
+    const s = sk();
+    addCircle(s, { x: 0, y: 0 }, 5);
+    addLine(s, { x: -5, y: 0 }, { x: 5, y: 0 });
+    expect(area(s, fillAt(s, [0, 2])!)).toBeCloseTo((Math.PI * 25) / 2, 6);
+  });
+
+  it('przyciąganie do linii (punkt na krawędzi)', () => {
+    const s = sk();
+    addLine(s, { x: 0, y: 0 }, { x: 10, y: 0 });
+    const r = snap(s, [3.3, 0.2], 0.5, { grid: null, points: true });
+    expect(r.kind).toBe('edge');
+    expect(r.p[0]).toBeCloseTo(3.3, 9);
+    expect(r.p[1]).toBeCloseTo(0, 9);
+    // punkt siatki leżący na linii ma pierwszeństwo przed rzutem
+    const g = snap(s, [3.3, 0.2], 0.5, { grid: 1, points: true });
+    expect(g.p).toEqual([3, 0]);
+  });
+});
+
+describe('szkic – przerwy a wystające końcówki', () => {
+  it('linia wystająca poza prostokąt nie jest zgłaszana jako przerwa; otwarty łańcuch tak', () => {
+    const s = sk();
+    addRect(s, { x: 0, y: 0 }, { x: 10, y: 10 });
+    addLine(s, { x: 5, y: -3 }, { x: 5, y: 13 });
+    expect(danglingPoints(s)).toEqual([]);
+    expect(gaps(s)).toEqual([]);
+    const l = addLine(s, { x: 20, y: 0 }, { x: 30, y: 0 })!;
+    addLine(s, { id: l.b, x: 30, y: 0 }, { x: 30, y: 9 });
+    expect(danglingPoints(s).length).toBe(2);
+    expect(gaps(s)[0].distance).toBeCloseTo(Math.hypot(10, 9), 9);
   });
 });

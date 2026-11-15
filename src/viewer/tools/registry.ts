@@ -17,7 +17,7 @@ export const toolFactories: Partial<Record<ToolId, (v: Viewer, sl: SketchLayer) 
   arcc: (v, l) => new ArcCenterTool(v, l),
   sketchFillet: (v, l) => new SketchFilletTool(v, l),
   fill: (v, l) => new FillTool(v, l),
-  extrude: (v) => new ExtrudeTool(v),
+  extrude: (v, l) => new ExtrudeTool(v, l),
   erase: (v) => new EraseTool(v),
   hole: (v) => new HoleTool(v),
   boolean: (v) => new BooleanTool(v),

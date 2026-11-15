@@ -83,11 +83,17 @@ pole wymiarów w trakcie rysowania (długość/kąt, szerokość/wysokość, pro
 przyciąganie do punktów końcowych, środków odcinków, środków okręgów i siatki; przeciąganie punktów
 (upuszczony na inny punkt łączy się z nim we wspólny wierzchołek), prostokąt i wielokąt zachowują kształt przy
 przeciąganiu; edycja wymiarów zaznaczonego elementu (długość, kąt, promień, współrzędne punktów, szerokość/wysokość
-prostokąta, liczba boków); zaokrąglanie narożników podanym promieniem; wypełnianie konturu jednym kliknięciem
-(także kontury z otworami i obszary ze wspólnymi krawędziami) i „Wypełnij wszystko”; niedomknięte końce
-i przerwy zaznaczane na czerwono, z komunikatem o położeniu i długości przerwy; wyciągnięcie konturu lub płaskiej
-ściany: przeciąganie strzałki albo wpisanie wysokości, tryby „dodaj materiał”, „wytnij”, „nowa bryła”,
-symetrycznie; przy „wytnij” kierunek automatycznie w głąb bryły; gumka (odcinek, wypełnienie, bryła).
+prostokąta, liczba boków); zaokrąglanie narożników podanym promieniem; wypełnianie wolnej przestrzeni między
+liniami jednym kliknięciem (podgląd obszaru pod kursorem) i „Wypełnij wszystko” — także kontury z otworami,
+obszary ze wspólnymi krawędziami, **linie przecinające się lub wystające poza kontur, linie kończące się w połowie
+innej linii, nachodzące na siebie okręgi i łuki** (elementy są dzielone w punktach przecięć, wcześniejsze
+wypełnienia zostają zachowane); przyciąganie końca linii do dowolnego punktu na linii/łuku/okręgu; niedomknięte
+końce i przerwy zaznaczane na czerwono, z komunikatem o położeniu i długości przerwy (końcówki celowo wystające
+poza przecięcie nie są traktowane jako przerwa); **przejście ze szkicu 2D do 3D**: przycisk „Wyciągnij” w pasku
+szkicu (lub klawisz E) sam wypełnia zamknięte obszary i od razu startuje wyciąganie, a narzędzie „Wyciągnij”
+przyjmuje kliknięcie w niewypełniony zamknięty obszar; wyciągnięcie konturu lub płaskiej ściany: przeciąganie
+strzałki albo wpisanie wysokości, tryby „dodaj materiał”, „wytnij”, „nowa bryła”, symetrycznie; przy „wytnij”
+kierunek automatycznie w głąb bryły; gumka (odcinek, wypełnienie, bryła).
 
 Ograniczenia: szkic narysowany na ścianie nie podąża za bryłą, gdy ta zostanie później przesunięta (płaszczyzna
 szkicu jest zapamiętywana w chwili jego utworzenia). Brak więzów geometrycznych (równoległość, styczność itp.) —
@@ -173,13 +179,13 @@ uruchamia aplikację razem z jądrem geometrii.
 | O / K | zaokrąglij / fazuj | F | dopasuj widok |
 | U | suma brył | G | przyciąganie do siatki |
 | M | pomiar | X | gumka |
-| w szkicu: L, R, C, P, A | linia, prostokąt, okrąg, wielokąt, łuk 3 pkt | Shift+A / Shift+F / W | łuk ze środkiem / zaokrąglenie narożnika / wypełnij |
+| w szkicu: L, R, C, P, A | linia, prostokąt, okrąg, wielokąt, łuk 3 pkt | Shift+A / Shift+F / W / E | łuk ze środkiem / zaokrąglenie narożnika / wypełnij / wyciągnij szkic |
 | Enter | zatwierdź operację | R (łuk ze środkiem) | odwróć kierunek łuku |
 
 ## Podsumowanie: co działa, czego brakuje, co dalej
 
-**Działa** — wszystkie funkcje z wymagań w zakresie opisanym przy etapach powyżej; testy: 46 jednostkowych
-(geometria B-rep, szkic, formaty) i 14 scenariuszy e2e w przeglądarce (także na emulowanym telefonie), uruchamiane w CI.
+**Działa** — wszystkie funkcje z wymagań w zakresie opisanym przy etapach powyżej; testy: 53 jednostkowe
+(geometria B-rep, szkic, formaty) i 17 scenariuszy e2e w przeglądarce (także na emulowanym telefonie), uruchamiane w CI.
 
 **Działa częściowo / świadome ograniczenia**
 - „Otwórz w Bambu Studio” — pobranie 3MF + instrukcja zamiast bezpośredniego otwarcia (powód wyżej: Bambu Studio
